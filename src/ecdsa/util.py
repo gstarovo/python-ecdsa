@@ -531,3 +531,129 @@ def sigdecode_der(sig_der, order):
             "trailing junk after DER numbers: %s" % binascii.hexlify(empty)
         )
     return r, s
+
+class ASN1FormatHandler(object):
+    """
+    Base class for handling ASN.1 format of ECDSA signatures.
+
+    This class is meant to be used as a base class for classes that handle
+    specific formats of ECDSA signatures encoded in ASN.1 format.
+    """
+
+    def __init__(self, s):
+        self.s = s
+
+    def encode(self, r, s):
+        """
+        Encode the signature into the specific format.
+
+        :param int r: first parameter of the signature
+        :param int s: second parameter of the signature
+
+        :return: encoded signature
+        :rtype: bytes
+        """
+        raise NotImplementedError
+
+    def decode(self, sig):
+        """
+        Decode the signature from the specific format.
+
+        :param sig: encoded signature
+        :type sig: bytes like object
+
+        :raises MalformedSignature: when the encoding of the signature is invalid
+
+        :return: tuple with decoded ``r`` and ``s`` values of signature
+        :rtype: tuple of ints
+        """
+        raise NotImplementedError
+
+class ASN1FullR(ASN1FormatHandler):
+    """
+    Handler for ECDSA signatures encoded in ASN.1 format with full ``r`` value.
+
+    This class is meant to be used as a ``sigdecode=`` parameter in
+    :func:`ecdsa.keys.VerifyingKey.verify` method when the signature is encoded
+    in the following ASN.1 structure::
+
+        Ecdsa-Full-R ::= SEQUENCE {
+            r       ECPoint,
+            s       INTEGER
+        }
+    """
+
+    def __init__(self, r, s):
+        super(ASN1FullR, self).__init__(s)
+        self.r = r
+
+    def encode(self, r, s):
+        """
+        Encode the signature into the specific format.
+
+        :param int r: first parameter of the signature
+        :param int s: second parameter of the signature
+
+        :return: encoded signature
+        :rtype: bytes
+        """
+        pass
+    def decode(self, sig):
+        """
+        Decode the signature from the specific format.
+
+        :param sig: encoded signature
+        :type sig: bytes like object
+
+        :raises MalformedSignature: when the encoding of the signature is invalid
+
+        :return: tuple with decoded ``r`` and ``s`` values of signature
+        :rtype: tuple of ints
+        """
+        pass
+
+class ASN1SigValue(ASN1FormatHandler):
+    """
+    Handler for ECDSA signatures encoded in ASN.1 format as Ecdsa-Sig-Value.
+
+    This class is meant to be used as a ``sigdecode=`` parameter in
+    :func:`ecdsa.keys.VerifyingKey.verify` method when the signature is encoded
+    in the following ASN.1 structure::
+
+        Ecdsa-Sig-Value ::= SEQUENCE {
+            r       INTEGER,
+            s       INTEGER,
+            a       INTEGER OPTIONAL,
+            y       { b BOOLEAN, f FieldElement } OPTIONAL
+        }
+    """
+
+    def encode(self, r, s):
+        """
+        Encode the signature into the specific format.
+
+        :param int r: first parameter of the signature
+        :param int s: second parameter of the signature
+
+        :return: encoded signature
+        :rtype: bytes
+        """
+        pass
+
+    def decode(self, sig):
+        """
+        Decode the signature from the specific format.
+
+        :param sig: encoded signature
+        :type sig: bytes like object
+
+        :raises MalformedSignature: when the encoding of the signature is invalid
+
+        :return: tuple with decoded ``r`` and ``s`` values of signature
+        :rtype: tuple of ints
+        """
+        pass
+
+# check if it is object as function or method
+# in the api on the highest level the client says what type of decoder it
+# wants to use, so we should not be checking the type of the decoder here

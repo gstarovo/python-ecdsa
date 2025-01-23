@@ -68,7 +68,7 @@ import warnings
 from six import int2byte
 from . import ellipticcurve
 from . import numbertheory
-from .util import bit_length
+from .util import bit_length, sigencode_der, sigdecode_der
 from ._compat import remove_whitespace
 
 
@@ -128,6 +128,47 @@ class Signature(object):
 
         return [Pk1, Pk2]
 
+class SignatureASN(Signature):
+    def __init__(self, r, s):
+        super().__init__(r, s)
+
+    def to_encode(self):
+        pass
+
+    def to_decode(self):
+        pass
+
+    def to_verify(self):
+        pass
+
+class Signature_sig_value(SignatureASN):
+    def __init__(self, r, s, a=None, y=None):
+        super().__init__(r, s)
+        self.a = a
+        self.y = y
+
+    def to_verify(self):
+        pass
+
+
+class Signature_full_r(SignatureASN):
+    def __init__(self, r, s):
+        super().__init__(r, s)
+
+    def to_encode(self):
+        return super().to_encode()
+
+    def to_decoder(self):
+        pass
+
+    def encode_point_to_octet_string(self, point):
+        pass
+
+    def decocde_octet_string_to_point(self, octet_string):
+        pass
+
+    def to_verify(self):
+        return super().to_verify()
 
 class Public_key(object):
     """Public key for ECDSA."""
@@ -187,6 +228,9 @@ class Public_key(object):
         """
 
         # From X9.62 J.3.1.
+
+        if isinstance(signature, SignatureASN):
+            return signature.to_verify()
 
         G = self.generator
         n = G.order()

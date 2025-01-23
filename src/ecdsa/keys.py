@@ -1,7 +1,7 @@
 """
 Primary classes for performing signing and verification operations.
 """
-
+import inspect
 import binascii
 from hashlib import sha1
 import os
@@ -23,7 +23,7 @@ from .util import (
 )
 from ._compat import normalise_bytes
 from .errors import MalformedPointError
-from .ellipticcurve import PointJacobi, CurveEdTw
+from .ellipticcurve import AbstractPoint, PointJacobi, CurveEdTw
 
 
 __all__ = [
@@ -730,16 +730,31 @@ class VerifyingKey(object):
             self.curve,
             allow_truncate,
         )
-
-        try:
-            r, s = sigdecode(signature, self.pubkey.order)
-        except (der.UnexpectedDER, MalformedSignature) as e:
-            raise BadSignatureError("Malformed formatting of signature", e)
-        sig = ecdsa.Signature(r, s)
+        sig = (
+            self.__handle_class_sigdecode__(sigdecode, signature)
+            if inspect.isclass(sigdecode)
+            else self.__handle_callable_sigdecode__(sigdecode, signature)
+        )
         if self.pubkey.verifies(number, sig):
             return True
         raise BadSignatureError("Signature verification failed")
 
+    def __handle_class_sigdecode__(self, sigdecode, signature):
+        try:
+            r, s = sigdecode.decode(signature)
+        except (der.UnexpectedDER, MalformedSignature) as e:
+            raise BadSignatureError("Malformed formatting of signature", e)
+
+        if isinstance(r, AbstractPoint):
+            return ecdsa.Signature_full_r(r, s)
+        return ecdsa.Signature_sig_value(r, s, sigdecode.a, sigdecode.y)
+
+    def __handle_callable_sigdecode__(self, sigdecode, signature):
+        try:
+            r, s = sigdecode(signature, self.pubkey.order)
+        except (der.UnexpectedDER, MalformedSignature) as e:
+            raise BadSignatureError("Malformed formatting of signature", e)
+        return ecdsa.Signature(r, s)
 
 class SigningKey(object):
     """
