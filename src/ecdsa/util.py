@@ -555,7 +555,7 @@ class ASN1FormatHandler(object):
         """
         raise NotImplementedError
 
-    def decode(self, sig):
+    def decode(self, sig, curve):
         """
         Decode the signature from the specific format.
 
@@ -598,17 +598,21 @@ class ASN1FullR(ASN1FormatHandler):
         :rtype: bytes
         """
         pass
-    def decode(self, sig):
+
+    def decode(self, sig, curve):
         """
         Decode the signature from the specific format.
 
         :param sig: encoded signature
         :type sig: bytes like object
 
+        :param curve: curve over which the signature was computed
+        :type curve: ecdsa.curves.Curve
+
         :raises MalformedSignature: when the encoding of the signature is invalid
 
         :return: tuple with decoded ``r`` and ``s`` values of signature
-        :rtype: tuple of ints
+        :rtype: tuple of AbstractPoint, int
         """
         pass
 
@@ -640,7 +644,7 @@ class ASN1SigValue(ASN1FormatHandler):
         """
         pass
 
-    def decode(self, sig):
+    def decode(self, sig, curve=None):
         """
         Decode the signature from the specific format.
 

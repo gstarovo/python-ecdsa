@@ -741,13 +741,13 @@ class VerifyingKey(object):
 
     def __handle_class_sigdecode__(self, sigdecode, signature):
         try:
-            r, s = sigdecode.decode(signature)
+            r, s, a, y = sigdecode.decode(signature)
         except (der.UnexpectedDER, MalformedSignature) as e:
             raise BadSignatureError("Malformed formatting of signature", e)
 
         if isinstance(r, AbstractPoint):
             return ecdsa.Signature_full_r(r, s)
-        return ecdsa.Signature_sig_value(r, s, sigdecode.a, sigdecode.y)
+        return ecdsa.Signature_sig_value(r, s, a, y)
 
     def __handle_callable_sigdecode__(self, sigdecode, signature):
         try:
