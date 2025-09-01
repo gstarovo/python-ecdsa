@@ -117,13 +117,11 @@ class PRNG:
             return bytes(a)
 
     def block_generator(self, seed):
-        counter = 0
+        c = 0
         while True:
-            for byte in sha256(
-                ("prng-%d-%s" % (counter, seed)).encode()
-            ).digest():
+            for byte in sha256(("prng-%d-%s" % (c, seed)).encode()).digest():
                 yield byte
-            counter += 1
+            c += 1
 
 
 def randrange_from_seed__overshoot_modulo(seed, order):
@@ -497,12 +495,27 @@ def sigdecode_der(sig_der, order):
     Decoder for DER format of ECDSA signatures.
 
     DER format of signature is one that uses the :term:`ASN.1` :term:`DER`
-    rules to encode it as a sequence of two integers::
+    rules to encode it as one of the choices::
 
-        Ecdsa-Sig-Value ::= SEQUENCE {
-            r       INTEGER,
-            s       INTEGER
+        ECDSA-Signature ::= CHOICE {
+            two-ints-plus ECDSA-Sig-Value,
+            point-int [0] ECDSA-Full-R,
+            ... -- Future representations may be added
         }
+
+        ECDSA-Sig-Value ::= SEQUENCE {
+            r INTEGER,
+            s INTEGER,
+            a INTEGER OPTIONAL,
+            y CHOICE { b BOOLEAN, f FieldElement } OPTIONAL
+        }
+
+        ECDSA-Full-R ::= SEQUENCE {
+            r ECPoint,
+            s INTEGER
+        }
+
+        ECPoint ::= OCTET STRING
 
     It's expected that this function will be used as as the ``sigdecode=``
     parameter to the :func:`ecdsa.keys.VerifyingKey.verify` method.
@@ -518,7 +531,39 @@ def sigdecode_der(sig_der, order):
     :rtype: tuple of ints
     """
     sig_der = normalise_bytes(sig_der)
-    # return der.encode_sequence(der.encode_integer(r), der.encode_integer(s))
+    # what signature is encoded depends on the tag presence
+    if not der.is_sequence(sig_der):
+        return sigdecode_der_full_r(sig_der)
+    return sigdecode_der_ecdsa_sig_value(sig_der)
+
+
+def sigdecode_der_full_r(sig_der):
+
+    # TODO function docstring
+    try:
+        tag, body, empty = der.remove_implicit(sig_der)
+    except IndexError:
+        raise der.UnexpectedDER("ECDSA-Full-R must be taged with [0]")
+    if tag != 0:
+        raise der.UnexpectedDER("ECDSA-Full-R must be taged with [0]")
+    if empty != b"":
+        raise der.UnexpectedDER(
+            "trailing junk after DER sig: %s" % binascii.hexlify(empty)
+        )
+    r_octet_str, rest = der.remove_octet_string(body)
+    r = int.from_bytes(r_octet_str, "big")
+    s, empty = der.remove_integer(rest)
+    if empty != b"":
+        raise der.UnexpectedDER(
+            "trailing junk after DER numbers: %s" % binascii.hexlify(empty)
+        )
+    return r, s
+
+
+def sigdecode_der_ecdsa_sig_value(sig_der):
+
+    # TODO function docstring
+
     rs_strings, empty = der.remove_sequence(sig_der)
     if empty != b"":
         raise der.UnexpectedDER(
