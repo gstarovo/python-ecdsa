@@ -551,7 +551,7 @@ def sigdecode_der_full_r(sig_der):
             "trailing junk after DER sig: %s" % binascii.hexlify(empty)
         )
     r_octet_str, rest = der.remove_octet_string(body)
-    r = int.from_bytes(r_octet_str, "big")
+    r = der.octet_string_to_integer(r_octet_str)
     s, empty = der.remove_integer(rest)
     if empty != b"":
         raise der.UnexpectedDER(

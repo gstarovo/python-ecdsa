@@ -476,3 +476,33 @@ def topem(der, name):
     )
     lines.append(("-----END %s-----\n" % name).encode())
     return b"".join(lines)
+
+
+def octet_string_to_integer(octet_string):
+    """
+    Converts an octet string to an integer
+    based on SECG SEC 1 v2.0, section 2.3.8.
+
+    :param octet_string: a bytes object representing the octet string
+    :type octet_string: bytes
+
+    :return: an integer x, converted from the octet string
+    :rtype: int
+    """
+    return int.from_bytes(octet_string, 'big')
+
+
+def integer_to_octet_string(integer):
+    """
+    Converts an integer to an octet string
+
+    :param integer: integer to convert
+    :type integer: int
+
+    :return: a bytes object representing an octet string
+    :rtype: bytes
+    """
+    int_len = integer.bit_length()
+    # For large integer, it is needed to calculate a sufficient length first
+    length = (max(int_len, 1) + 7) // 8
+    return int.to_bytes(integer, length=length, byteorder='big')

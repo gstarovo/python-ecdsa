@@ -39,6 +39,8 @@ from .der import (
     encode_oid,
     encode_sequence,
     encode_constructed,
+    encode_implicit,
+    integer_to_octet_string
 )
 from .ellipticcurve import CurveEdTw
 
@@ -47,9 +49,7 @@ example_data = b"some data to sign"
 """Since the data is hashed for processing, really any string will do."""
 
 
-hash_and_size = [
-    (name, hashlib.new(name).digest_size) for name in algorithms_available
-]
+hash_and_size = [(name, hashlib.new(name).digest_size) for name in algorithms_available]
 """Pairs of hash names and their output sizes.
 Needed for pairing with curves as we don't support hashes
 bigger than order sizes of curves."""
@@ -70,9 +70,7 @@ for curve in sorted(curves, key=lambda x: x.baselen):
         for name, size in sorted(hash_and_size, key=lambda x: x[1])
         if 0 < size <= curve.baselen
     ]:
-        sk = SigningKey.generate(
-            curve, hashfunc=partial(hashlib.new, hash_alg)
-        )
+        sk = SigningKey.generate(curve, hashfunc=partial(hashlib.new, hash_alg))
 
         keys_and_sigs.append(
             (
@@ -89,9 +87,7 @@ for curve in sorted(curves, key=lambda x: x.baselen):
     [pytest.param(vk, sig, id=name) for name, vk, sig in keys_and_sigs],
 )
 def test_signatures(verifying_key, signature):
-    assert verifying_key.verify(
-        signature, example_data, sigdecode=sigdecode_der
-    )
+    assert verifying_key.verify(signature, example_data, sigdecode=sigdecode_der)
 
 
 @st.composite
@@ -133,9 +129,7 @@ def st_fuzzed_sig(draw, keys_and_sigs):  # pragma: no cover
     insert_data = draw(st.binary(max_size=256))
 
     sig = sig[:insert_pos] + insert_data + sig[insert_pos:]
-    note(
-        "Inserted at position {0} bytes: {1!r}".format(insert_pos, insert_data)
-    )
+    note("Inserted at position {0} bytes: {1!r}".format(insert_pos, insert_data))
 
     sig = bytes(sig)
     # make sure that there was performed at least one mutation on the data
@@ -211,11 +205,65 @@ def st_random_der_ecdsa_sig_value(draw):  # pragma: no cover
     return verifying_key, sig
 
 
+@st.composite
+def st_random_der_ecdsa_sig_value_full_r(draw):  # pragma: no cover
+    """
+    Hypothesis strategy for selecting random values and encoding them
+    to ECDSA-Signature object with chosen ECDSA-Full-R::
+
+        ECDSA-Signature ::= CHOICE {
+            two-ints-plus ECDSA-Sig-Value,
+            point-int [0] ECDSA-Full-R,
+            ... -- Future representations may be added
+        }
+
+        ECDSA-Full-R ::= SEQUENCE {
+            r ECPoint,
+            s INTEGER
+        }
+
+        ECPoint ::= OCTET STRING
+    """
+    name, verifying_key, _ = draw(st.sampled_from(keys_and_sigs))
+    note("Configuration: {0}".format(name))
+    order = int(verifying_key.curve.order)
+
+    r = draw(
+        st.integers(min_value=0, max_value=order << 4)
+        | st.integers(min_value=order >> 2, max_value=order + 1)
+    )
+    s = draw(
+        st.integers(min_value=0, max_value=order << 4)
+        | st.integers(min_value=order >> 2, max_value=order + 1)
+    )
+
+    r = integer_to_octet_string(r)
+
+    sig = encode_sequence(encode_octet_string(r), encode_integer(s))
+    # the ECDSA-FULL-R in ECDSA-Signature has a tag [0]
+    sig = encode_implicit(0, sig)
+
+    return verifying_key, sig
+
+
 @settings(**slow_params)
 @given(st_random_der_ecdsa_sig_value())
 def test_random_der_ecdsa_sig_value(params):
     """
     Check if random values encoded in ECDSA-Sig-Value structure are rejected
+    as signature.
+    """
+    verifying_key, sig = params
+
+    with pytest.raises(BadSignatureError):
+        verifying_key.verify(sig, example_data, sigdecode=sigdecode_der)
+
+
+@settings(**slow_params)
+@given(st_random_der_ecdsa_sig_value_full_r())
+def test_random_der_ecdsa_sig_value_full_r(params):
+    """
+    Check if random values encoded in ECDSA-Full-R structure are rejected
     as signature.
     """
     verifying_key, sig = params
@@ -277,9 +325,7 @@ def st_der_oid(draw):  # pragma: no cover
         second = draw(st.integers(min_value=0, max_value=39))
     else:
         second = draw(st.integers(min_value=0, max_value=2**512))
-    rest = draw(
-        st.lists(st.integers(min_value=0, max_value=2**512), max_size=50)
-    )
+    rest = draw(st.lists(st.integers(min_value=0, max_value=2**512), max_size=50))
     return encode_oid(first, second, *rest)
 
 
@@ -300,9 +346,7 @@ def st_der():  # pragma: no cover
         | st_der_oid(),
         lambda children: st.builds(encode_octet_string, st.one_of(children))
         | st.builds(lambda x: encode_bitstring(x, 0), st.one_of(children))
-        | st.builds(
-            lambda x: encode_sequence(*x), st.lists(children, max_size=200)
-        )
+        | st.builds(lambda x: encode_sequence(*x), st.lists(children, max_size=200))
         | st.builds(
             encode_constructed,
             st.integers(min_value=0, max_value=0x3F),
@@ -324,9 +368,7 @@ def test_random_der_as_signature(params, der):
 
 @settings(**slow_params)
 @given(st.sampled_from(keys_and_sigs), st.binary(max_size=1024**2))
-@example(
-    keys_and_sigs[0], encode_sequence(encode_integer(0), encode_integer(0))
-)
+@example(keys_and_sigs[0], encode_sequence(encode_integer(0), encode_integer(0)))
 @example(
     keys_and_sigs[0],
     encode_sequence(encode_integer(1), encode_integer(1)) + b"\x00",
