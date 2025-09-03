@@ -48,6 +48,11 @@ jobs:
             os: ubuntu-22.04
             python-version: 2.7
             tox-env: gmpy2py27
+          - name: py3.6
+            os: ubuntu-latest
+            container: centos:8
+            python-version: 3.6
+            tox-env: py36
           - name: py3.7
             os: ubuntu-22.04
             python-version: 3.7
