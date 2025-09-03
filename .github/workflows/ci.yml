@@ -50,7 +50,7 @@ jobs:
             tox-env: gmpy2py27
           - name: py3.6
             os: ubuntu-latest
-            container: centos:8
+            container: centos:6
             python-version: 3.6
             tox-env: py36
           - name: py3.7
