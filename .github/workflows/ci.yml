@@ -185,7 +185,9 @@ jobs:
           echo installing
           yum clean all
           yum repolist all
-          yum install -y git make python36 curl gcc libffi-devel python36-devel glibc-devel openssl-devel wget
+          yum install -y make python36 curl gcc libffi-devel python36-devel glibc-devel openssl-devel wget
+          yum install http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
+          yum update git
           ln -fs /usr/bin/python3.6 /usr/bin/python
       - name: Ensure dependencies on Ubuntu 22.04
         if: ${{ matrix.container == 'ubuntu:22.04' }}
