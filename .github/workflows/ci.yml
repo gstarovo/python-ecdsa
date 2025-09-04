@@ -157,7 +157,7 @@ jobs:
           cd git-2.31.0
           make prefix=/usr/local/git all
           make prefix=/usr/local/git install
-          export PATH=/usr/local/git/bin:$PATH
+          ln -fs /usr/local/git/bin/git /usr/bin/git
           git --version
 
       - name: Ensere dependenceis on CentOS:8
