@@ -368,6 +368,8 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, runner=run_command):
         # HEX: no tags
         pieces["closest-tag"] = None
         count_out, rc = runner(GITS, ["rev-list", "HEAD", "--count"], cwd=root)
+        if count_out is None:
+            raise TypeError(rc)
         pieces["distance"] = int(count_out)  # total number of commits
 
     # commit date: see ISO-8601 comment in git_versions_from_keywords()
