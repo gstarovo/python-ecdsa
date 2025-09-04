@@ -146,10 +146,14 @@ jobs:
           gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
 
           EOF
+
           echo installing
           yum clean all
           yum repolist all
-          yum install -y git make python curl gcc libffi-devel python-devel glibc-devel openssl-devel wget
+          yum --showduplicates list git
+          yum install -y http://opensource.wandisco.com/centos/7/git/x86_64/wandisco-git-release-7-2.noarch.rpm
+          yum install -y git
+          yum install -y make python curl gcc libffi-devel python-devel glibc-devel openssl-devel wget
       - name: Ensere dependenceis on CentOS:8
         if: ${{ matrix.container == 'centos:8' }}
         run: |
@@ -185,9 +189,7 @@ jobs:
           echo installing
           yum clean all
           yum repolist all
-          yum install -y make python36 curl gcc libffi-devel python36-devel glibc-devel openssl-devel wget
-          yum install http://opensource.wandisco.com/centos/6/git/x86_64/wandisco-git-release-6-1.noarch.rpm
-          yum update git
+          yum install -y git make python36 curl gcc libffi-devel python36-devel glibc-devel openssl-devel wget
           ln -fs /usr/bin/python3.6 /usr/bin/python
       - name: Ensure dependencies on Ubuntu 22.04
         if: ${{ matrix.container == 'ubuntu:22.04' }}
