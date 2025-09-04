@@ -331,7 +331,6 @@ jobs:
         run: |
           # because tox uses pip, and pip is broken on py2.6, we need run the
           # tests directly on the system
-          echo '__version__ = "0.19.1"' > src/ecdsa/_version.py
           coverage run --branch -m pytest
       - name: Run unit tests
         if: ${{ matrix.tox-env }}

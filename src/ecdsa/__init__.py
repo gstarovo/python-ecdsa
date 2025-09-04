@@ -1,6 +1,7 @@
 # while we don't use six in this file, we did bundle it for a long time, so
 # keep as part of module in a virtual way (through __all__)
 import six
+import sys
 from .keys import (
     SigningKey,
     VerifyingKey,
@@ -100,5 +101,7 @@ _hush_pyflakes = [
     BRAINPOOLP512t1,
 ]
 del _hush_pyflakes
-
-__version__ = _version.get_versions()["version"]
+if sys.version_info[0] == 2 and sys.version_info[1] == 6:
+    __version__ = "0.19.1"
+else:
+    __version__ = _version.get_versions()["version"]
