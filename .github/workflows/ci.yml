@@ -326,15 +326,12 @@ jobs:
       - name: Test speed with gmpy2
         if: ${{ contains(matrix.tox-env, 'gmpy2') }}
         run: tox -e speedgmpy2
-      - name: Patch _version.py for Python 2.6
-        if: ${{ matrix.python-version == '2.6' }}
-        run: |
-          echo '__version__ = "0.19.1"' > src/ecdsa/_version.py
       - name: Run unit tests (2.6)
         if: ${{ matrix.python-version == '2.6' }}
         run: |
           # because tox uses pip, and pip is broken on py2.6, we need run the
           # tests directly on the system
+          echo '__version__ = "0.19.1"' > src/ecdsa/_version.py
           coverage run --branch -m pytest
       - name: Run unit tests
         if: ${{ matrix.tox-env }}
