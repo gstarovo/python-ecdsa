@@ -149,9 +149,17 @@ jobs:
           echo installing
           yum clean all
           yum repolist all
-          yum install -y http://opensource.wandisco.com/centos/7/git/x86_64/wandisco-git-release-7-2.noarch.rpm
-          yum install -y git
-          yum install -y make python curl gcc libffi-devel python-devel glibc-devel openssl-devel wget
+          yum install -y make python curl gcc libffi-devel python-devel glibc-devel openssl-devel wget curl-config curl-devel expat-devel gettext-devel zlib-devel perl-ExtUtils-MakeMaker
+
+          cd /usr/src
+          wget https://www.kernel.org/pub/software/scm/git/git-2.31.0.tar.gz
+          tar xzf git-2.31.0.tar.gz
+          cd git-2.31.0
+          make prefix=/usr/local/git all
+          make prefix=/usr/local/git install
+          echo "/usr/local/git/bin" >> $GITHUB_PATH
+          git --version
+
       - name: Ensere dependenceis on CentOS:8
         if: ${{ matrix.container == 'centos:8' }}
         run: |
